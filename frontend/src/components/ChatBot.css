@@ -5,7 +5,7 @@
   margin: 0 auto;
   padding: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #ffffff;
+  background: #3c3c50;
   border-radius: 10px;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
   display: flex;
@@ -109,7 +109,7 @@
 .chatbot-file-input {
   margin-top: 10px;
   border: 1px solid #ddd;
-  border-radius: 20px;
+  border-radius: 0px;
   padding: 10px;
   background: white;
 }
