@@ -1,11 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import torch
-from transformers import BertTokenizer, BertForSequenceClassification
+from transformers import BertTokenizer, BertForSequenceClassification, GPT2LMHeadModel, GPT2Tokenizer, AutoProcessor, AutoModelForSeq2SeqLM
 import os
 import cv2
 import numpy as np
 from PIL import Image
+
+from transformers import BlipProcessor, BlipForConditionalGeneration
 
 # YOLOv5 Imports
 from models.common import DetectMultiBackend
@@ -22,8 +24,25 @@ model = DetectMultiBackend('yolov5s.pt', device=device)  # Replace 'yolov5s.pt' 
 stride, names, pt = model.stride, model.names, model.pt
 
 # Load BERT model and tokenizer
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 bert_model = BertForSequenceClassification.from_pretrained('bert-base-uncased')
+
+# Load GPT-2 model and tokenizer
+gpt2_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+gpt2_model = GPT2LMHeadModel.from_pretrained('gpt2')
+
+
+# Load BLIP model and processor
+blip_processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
+blip_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large")
+
+def generate_blip_caption(image):
+    """Generates a caption for the given image using BLIP."""
+    inputs = blip_processor(images=image, return_tensors="pt")
+    outputs = blip_model.generate(**inputs)
+    caption = blip_processor.decode(outputs[0], skip_special_tokens=True)
+    return caption
+
 
 detected_objects = []
 
@@ -35,13 +54,22 @@ def detect_color(image, bbox):
     color_name = f"RGB({avg_color[0]}, {avg_color[1]}, {avg_color[2]})"
     return color_name
 
+def generate_gpt2_response(prompt):
+    """Generates a response using GPT-2 based on the input prompt."""
+    inputs = gpt2_tokenizer.encode(prompt, return_tensors='pt')
+    outputs = gpt2_model.generate(inputs, max_length=100, num_return_sequences=1, pad_token_id=gpt2_tokenizer.eos_token_id)
+    response = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return response
+
+
+
 @app.route('/chat', methods=['POST'])
 def chat():
     global detected_objects
     response = ""
 
     if 'image' in request.files:
-        # Handle image upload for YOLOv5
+        # Handle image upload for YOLOv5 and BLIP
         image = request.files['image']
         img_path = os.path.join('uploads', image.filename)
         image.save(img_path)
@@ -70,7 +98,11 @@ def chat():
                             "color": color,
                         })
 
-        response = f"I detected the following objects: {', '.join([obj['object'] for obj in detected_objects])}"
+        # Generate a caption using BLIP
+        pil_img = Image.open(img_path).convert("RGB")
+        caption = generate_blip_caption(pil_img)
+
+        response = f"I detected the following objects: {', '.join([obj['object'] for obj in detected_objects])}. The image caption is: {caption}"
     
     elif 'message' in request.json:
         user_input = request.json.get('message')
@@ -85,13 +117,15 @@ def chat():
                 response = "I'm not sure about the color."
 
         else:
-            # Use BERT for general text input
-            inputs = tokenizer(user_input, return_tensors="pt", padding=True, truncation=True, max_length=128)
+            # Use BERT for intent classification
+            inputs = bert_tokenizer(user_input, return_tensors="pt", padding=True, truncation=True, max_length=128)
             outputs = bert_model(**inputs)
             logits = outputs.logits
             prediction = torch.argmax(logits, dim=-1).item()
 
-            response = f"You said: {user_input}. Prediction class: {prediction}"
+            # Generate response using GPT-2 based on BERT's classification
+            gpt2_prompt = f"User message: {user_input}. Intent class: {prediction}. Generate a response:"
+            response = generate_gpt2_response(gpt2_prompt)
 
     return jsonify({"response": response})
 

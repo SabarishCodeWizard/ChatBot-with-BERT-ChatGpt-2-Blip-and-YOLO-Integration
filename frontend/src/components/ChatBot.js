@@ -5,43 +5,66 @@ import logo from './logo.png'; // Replace with your logo image path
 
 function ChatBot() {
     const [message, setMessage] = useState('');
-    const [response, setResponse] = useState('');
+    const [messages, setMessages] = useState([]);
     const [image, setImage] = useState(null);
     const [isTyping, setIsTyping] = useState(false);
+    const [error, setError] = useState(null);
     const messagesEndRef = useRef(null);
 
     const handleTextSubmit = async (e) => {
         e.preventDefault();
+        if (!message.trim()) return;
+
+        addMessage({ text: message, sender: 'user' });
         setIsTyping(true);
+        setMessage('');
 
-        const res = await axios.post('http://localhost:5000/chat', { message });
-        setResponse(res.data.response);
-        setMessage(''); // Clear input after submit
-
-        setIsTyping(false);
+        try {
+            const res = await axios.post('http://localhost:5000/chat', { message });
+            addMessage({ text: res.data.response, sender: 'bot' });
+        } catch (err) {
+            setError('Failed to get response from the server.');
+        } finally {
+            setIsTyping(false);
+        }
     };
 
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];
+        if (!file) return;
+
         setImage(file);
+        addMessage({ text: 'Image uploaded', sender: 'user', image: URL.createObjectURL(file) });
 
         const formData = new FormData();
         formData.append('image', file);
 
-        const res = await axios.post('http://localhost:5000/chat', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        setResponse(res.data.response);
-        setImage(null); // Clear image input after upload
+        try {
+            setIsTyping(true);
+            const res = await axios.post('http://localhost:5000/chat', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            addMessage({ text: res.data.response, sender: 'bot' });
+        } catch (err) {
+            setError('Failed to get response from the server.');
+        } finally {
+            setIsTyping(false);
+            setImage(null); // Clear image input after upload
+        }
+    };
+
+    const addMessage = (message) => {
+        setMessages((prevMessages) => [...prevMessages, message]);
     };
 
     const handleClearChat = () => {
-        setResponse('');
+        setMessages([]);
+        setError(null);
     };
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [response]);
+    }, [messages]);
 
     return (
         <div className="chatbot-container">
@@ -51,14 +74,20 @@ function ChatBot() {
             </div>
             <div className="chatbot-content">
                 <div className="chatbot-messages">
-                    {response && <div className="chatbot-message bot"><p>{response}</p></div>}
-                    {isTyping && 
+                    {messages.map((msg, index) => (
+                        <div key={index} className={`chatbot-message ${msg.sender}`}>
+                            {msg.image && <img src={msg.image} alt="Uploaded" className="chatbot-image-preview" />}
+                            <p>{msg.text}</p>
+                        </div>
+                    ))}
+                    {isTyping && (
                         <div className="typing-indicator">
                             <div></div>
                             <div></div>
                             <div></div>
                         </div>
-                    }
+                    )}
+                    {error && <div className="chatbot-error">{error}</div>}
                     <div ref={messagesEndRef} />
                 </div>
                 <form className="chatbot-form" onSubmit={handleTextSubmit}>
@@ -76,6 +105,7 @@ function ChatBot() {
                     type="file"
                     onChange={handleImageUpload}
                     className="chatbot-file-input"
+                    accept="image/*"
                 />
             </div>
         </div>
