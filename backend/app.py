@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import torch
-from transformers import BertTokenizer, BertForSequenceClassification, GPT2Tokenizer, GPT2LMHeadModel
+from transformers import BertTokenizer, BertForSequenceClassification
 import os
+import cv2
+import numpy as np
 from PIL import Image
 
 # YOLOv5 Imports
@@ -20,26 +22,34 @@ model = DetectMultiBackend('yolov5s.pt', device=device)  # Replace 'yolov5s.pt' 
 stride, names, pt = model.stride, model.names, model.pt
 
 # Load BERT model and tokenizer
-bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 bert_model = BertForSequenceClassification.from_pretrained('bert-base-uncased')
 
-# Load GPT-2 model and tokenizer
-gpt2_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-gpt2_model = GPT2LMHeadModel.from_pretrained('gpt2')
+detected_objects = []
+
+def detect_color(image, bbox):
+    """Detects the dominant color within a bounding box in the image."""
+    x1, y1, x2, y2 = map(int, bbox)
+    cropped_img = image[y1:y2, x1:x2]
+    avg_color = np.mean(cropped_img, axis=(0, 1)).astype(int)
+    color_name = f"RGB({avg_color[0]}, {avg_color[1]}, {avg_color[2]})"
+    return color_name
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    global detected_objects
     response = ""
-    detected_objects = []
 
     if 'image' in request.files:
         # Handle image upload for YOLOv5
         image = request.files['image']
         img_path = os.path.join('uploads', image.filename)
         image.save(img_path)
+        img = cv2.imread(img_path)
 
         # Run YOLOv5 detection on the image
         dataset = LoadImages(img_path, img_size=640, stride=stride)
+        detected_objects = []
         for path, img, im0s, vid_cap in dataset:
             img = torch.from_numpy(img).to(device)
             img = img.float()  # uint8 to fp16/32
@@ -54,9 +64,10 @@ def chat():
                 if len(det):
                     det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0s.shape).round()
                     for *xyxy, conf, cls in reversed(det):
+                        color = detect_color(im0s, xyxy)  # Detect color of the object
                         detected_objects.append({
                             "object": names[int(cls)],
-                            "color": "unknown",  # Placeholder for color detection logic
+                            "color": color,
                         })
 
         response = f"I detected the following objects: {', '.join([obj['object'] for obj in detected_objects])}"
@@ -64,28 +75,23 @@ def chat():
     elif 'message' in request.json:
         user_input = request.json.get('message')
 
-        # Simple rule-based system to answer questions about detected objects
+        # Check if the user is asking about the color of a detected object
         if 'color' in user_input and len(detected_objects) > 0:
             for obj in detected_objects:
-                if obj['object'] in user_input:
+                if obj['object'] in user_input.lower():
                     response = f"The color of the {obj['object']} is {obj['color']}."
                     break
             else:
                 response = "I'm not sure about the color."
 
         else:
-            # BERT for intent classification
-            inputs = bert_tokenizer(user_input, return_tensors="pt", padding=True, truncation=True, max_length=128)
+            # Use BERT for general text input
+            inputs = tokenizer(user_input, return_tensors="pt", padding=True, truncation=True, max_length=128)
             outputs = bert_model(**inputs)
             logits = outputs.logits
             prediction = torch.argmax(logits, dim=-1).item()
 
-            # GPT-2 for response generation
-            gpt2_input = gpt2_tokenizer.encode(f"User intent: {prediction}. User said: {user_input}", return_tensors="pt")
-            gpt2_output = gpt2_model.generate(gpt2_input, max_length=150, num_return_sequences=1, pad_token_id=gpt2_tokenizer.eos_token_id)
-            gpt2_response = gpt2_tokenizer.decode(gpt2_output[0], skip_special_tokens=True)
-
-            response = gpt2_response
+            response = f"You said: {user_input}. Prediction class: {prediction}"
 
     return jsonify({"response": response})
 
