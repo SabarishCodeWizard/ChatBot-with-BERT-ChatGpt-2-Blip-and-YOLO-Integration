@@ -1,15 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import torch
-from transformers import BertTokenizer, BertForSequenceClassification, GPT2LMHeadModel, GPT2Tokenizer, AutoProcessor, AutoModelForSeq2SeqLM
+from transformers import BertTokenizer, BertForSequenceClassification, GPT2LMHeadModel, GPT2Tokenizer, BlipProcessor, BlipForConditionalGeneration
 import os
 import cv2
 import numpy as np
 from PIL import Image
-
-from transformers import BlipProcessor, BlipForConditionalGeneration
-
-# YOLOv5 Imports
+from pymongo import MongoClient
+from bson import ObjectId
 from models.common import DetectMultiBackend
 from utils.torch_utils import select_device
 from utils.general import non_max_suppression, scale_coords
@@ -17,6 +15,12 @@ from utils.datasets import LoadImages
 
 app = Flask(__name__)
 CORS(app)
+
+# Connect to MongoDB
+client = MongoClient('mongodb://localhost:27017/')
+db = client['chatbot_db']
+images_collection = db['images']
+texts_collection = db['texts']
 
 # Load YOLOv5 model
 device = select_device('')
@@ -31,7 +35,6 @@ bert_model = BertForSequenceClassification.from_pretrained('bert-base-uncased')
 gpt2_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 gpt2_model = GPT2LMHeadModel.from_pretrained('gpt2')
 
-
 # Load BLIP model and processor
 blip_processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
 blip_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large")
@@ -42,7 +45,6 @@ def generate_blip_caption(image):
     outputs = blip_model.generate(**inputs)
     caption = blip_processor.decode(outputs[0], skip_special_tokens=True)
     return caption
-
 
 detected_objects = []
 
@@ -60,8 +62,6 @@ def generate_gpt2_response(prompt):
     outputs = gpt2_model.generate(inputs, max_length=100, num_return_sequences=1, pad_token_id=gpt2_tokenizer.eos_token_id)
     response = gpt2_tokenizer.decode(outputs[0], skip_special_tokens=True)
     return response
-
-
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -102,10 +102,26 @@ def chat():
         pil_img = Image.open(img_path).convert("RGB")
         caption = generate_blip_caption(pil_img)
 
+        # Save image data to MongoDB
+        image_doc = {
+            'filename': image.filename,
+            'path': img_path,
+            'caption': caption,
+            'detected_objects': detected_objects
+        }
+        images_collection.insert_one(image_doc)
+
         response = f"I detected the following objects: {', '.join([obj['object'] for obj in detected_objects])}. The image caption is: {caption}"
     
     elif 'message' in request.json:
         user_input = request.json.get('message')
+
+        # Save text data to MongoDB
+        text_doc = {
+            'message': user_input,
+            'response': ""
+        }
+        texts_collection.insert_one(text_doc)
 
         # Check if the user is asking about the color of a detected object
         if 'color' in user_input and len(detected_objects) > 0:
@@ -126,6 +142,9 @@ def chat():
             # Generate response using GPT-2 based on BERT's classification
             gpt2_prompt = f"User message: {user_input}. Intent class: {prediction}. Generate a response:"
             response = generate_gpt2_response(gpt2_prompt)
+
+        # Update text document with the response
+        texts_collection.update_one({'message': user_input}, {'$set': {'response': response}})
 
     return jsonify({"response": response})
 
