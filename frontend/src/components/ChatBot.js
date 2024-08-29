@@ -9,7 +9,19 @@ function ChatBot() {
     const [image, setImage] = useState(null);
     const [isTyping, setIsTyping] = useState(false);
     const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
     const messagesEndRef = useRef(null);
+
+    useEffect(() => {
+        // Load chat history from localStorage
+        const storedMessages = JSON.parse(localStorage.getItem('chatHistory')) || [];
+        setMessages(storedMessages);
+    }, []);
+
+    useEffect(() => {
+        // Save chat history to localStorage
+        localStorage.setItem('chatHistory', JSON.stringify(messages));
+    }, [messages]);
 
     const handleTextSubmit = async (e) => {
         e.preventDefault();
@@ -60,7 +72,16 @@ function ChatBot() {
     const handleClearChat = () => {
         setMessages([]);
         setError(null);
+        localStorage.removeItem('chatHistory'); // Clear chat history from localStorage
     };
+
+    const handleSearch = (e) => {
+        setSearchTerm(e.target.value);
+    };
+
+    const filteredMessages = messages.filter(msg =>
+        msg.text.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -73,8 +94,17 @@ function ChatBot() {
                 <h2>ChatBot with BERT and YOLO Integration</h2>
             </div>
             <div className="chatbot-content">
+                <div className="chatbot-search">
+                    <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={handleSearch}
+                        placeholder="Search chat history..."
+                        className="chatbot-search-input"
+                    />
+                </div>
                 <div className="chatbot-messages">
-                    {messages.map((msg, index) => (
+                    {filteredMessages.map((msg, index) => (
                         <div key={index} className={`chatbot-message ${msg.sender}`}>
                             {msg.image && <img src={msg.image} alt="Uploaded" className="chatbot-image-preview" />}
                             <p>{msg.text}</p>

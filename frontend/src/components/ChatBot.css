@@ -169,6 +169,25 @@
   animation-delay: 0.4s;
 }
 
+/* ChatBot.css */
+
+.chatbot-search {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px;
+}
+
+.chatbot-search-input {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 400px;
+    font-size: 16px;
+}
+
+
+
 @keyframes bounce {
   0%, 20%, 50%, 80%, 100% {
     transform: translateY(0);
@@ -180,3 +199,5 @@
     transform: translateY(-7px);
   }
 }
+
+
