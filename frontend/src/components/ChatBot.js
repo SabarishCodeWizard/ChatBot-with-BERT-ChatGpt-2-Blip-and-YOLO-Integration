@@ -10,6 +10,7 @@ function ChatBot() {
     const [isTyping, setIsTyping] = useState(false);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [quickReplies, setQuickReplies] = useState([]); // State for quick replies
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
@@ -34,6 +35,11 @@ function ChatBot() {
         try {
             const res = await axios.post('http://localhost:5000/chat', { message });
             addMessage({ text: res.data.response, sender: 'bot' });
+
+            // Set quick replies based on response
+            if (res.data.quickReplies) {
+                setQuickReplies(res.data.quickReplies);
+            }
         } catch (err) {
             setError('Failed to get response from the server.');
         } finally {
@@ -72,6 +78,7 @@ function ChatBot() {
     const handleClearChat = () => {
         setMessages([]);
         setError(null);
+        setQuickReplies([]); // Clear quick replies
         localStorage.removeItem('chatHistory'); // Clear chat history from localStorage
     };
 
@@ -86,6 +93,48 @@ function ChatBot() {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    const handleVoiceInput = () => {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert('Your browser does not support speech recognition.');
+            return;
+        }
+
+        const recognition = new window.webkitSpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => console.log('Voice recognition started.');
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            setMessage(transcript);
+            console.log('Recognized: ', transcript);
+        };
+        recognition.onerror = (event) => console.error('Speech recognition error:', event.error);
+        recognition.onend = () => console.log('Voice recognition ended.');
+
+        recognition.start();
+    };
+
+    const handleVoiceOutput = () => {
+        if (!('speechSynthesis' in window)) {
+            alert('Your browser does not support speech synthesis.');
+            return;
+        }
+
+        const lastBotMessage = messages.slice().reverse().find(msg => msg.sender === 'bot');
+        if (!lastBotMessage) return;
+
+        const utterance = new SpeechSynthesisUtterance(lastBotMessage.text);
+        utterance.lang = 'en-US';
+        window.speechSynthesis.speak(utterance);
+    };
+
+    const handleQuickReply = (reply) => {
+        setMessage(reply);
+        handleTextSubmit(new Event('submit')); // Submit the reply
+    };
 
     return (
         <div className="chatbot-container">
@@ -128,6 +177,22 @@ function ChatBot() {
                         placeholder="Type your message..."
                         className="chatbot-input"
                     />
+                    <div className="voice-buttons">
+                        <button
+                            type="button"
+                            className="voice-input-button"
+                            onClick={handleVoiceInput}
+                        >
+                            🎤
+                        </button>
+                        <button
+                            type="button"
+                            className="voice-output-button"
+                            onClick={handleVoiceOutput}
+                        >
+                            🔊
+                        </button>
+                    </div>
                     <button type="submit" className="chatbot-button">Send</button>
                     <button type="button" className="chatbot-clear-button" onClick={handleClearChat}>Clear</button>
                 </form>
@@ -137,6 +202,19 @@ function ChatBot() {
                     className="chatbot-file-input"
                     accept="image/*"
                 />
+                {quickReplies.length > 0 && (
+                    <div className="quick-replies">
+                        {quickReplies.map((reply, index) => (
+                            <button
+                                key={index}
+                                className="quick-reply-button"
+                                onClick={() => handleQuickReply(reply)}
+                            >
+                                {reply}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
