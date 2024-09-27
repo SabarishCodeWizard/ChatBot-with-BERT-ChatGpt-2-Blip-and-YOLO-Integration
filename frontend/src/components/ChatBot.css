@@ -1,4 +1,29 @@
-/* ChatBot.css */
+/* Combined CSS file */
+
+/* App styles */
+.App {
+  text-align: center;
+  background-color: #28283c;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: Arial, sans-serif;
+}
+
+.App-header {
+  color: white;
+  width: 100%;
+}
+
+main {
+  padding: 20px;
+  width: 100%;
+  max-width: 800px;
+}
+
+/* ChatBot styles */
 /* Chatbot container */
 .chatbot-container {
   max-width: 800px;
@@ -17,12 +42,12 @@
 
 /* Image preview styling */
 .chatbot-image-preview {
-    max-width: 100%;
-    max-height: 300px; /* Adjust as needed */
-    border-radius: 10px;
-    object-fit: contain; /* Ensures the image scales correctly */
-    display: block;
-    margin: 10px 0;
+  max-width: 100%;
+  max-height: 300px; /* Adjust as needed */
+  border-radius: 10px;
+  object-fit: contain; /* Ensures the image scales correctly */
+  display: block;
+  margin: 10px 0;
 }
 
 /* Header styling with a logo and title */
@@ -63,7 +88,6 @@
   padding: 10px;
   box-sizing: border-box; /* Ensure padding is included in the width calculation */
 }
-
 
 .chatbot-message {
   padding: 12px 18px;
@@ -128,15 +152,7 @@
   background: white;
 }
 
-/* ChatBot.css */
-
-.chatbot-form {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
+/* Clear button */
 .chatbot-clear-button {
   padding: 12px 20px;
   border: none;
@@ -151,7 +167,6 @@
 .chatbot-clear-button:hover {
   background-color: #c82333;
 }
-
 
 /* Animation */
 @keyframes fadeInUp {
@@ -183,26 +198,21 @@
   animation-delay: 0.4s;
 }
 
-/* ChatBot.css */
-
+/* Search styles */
 .chatbot-search {
-    display: flex;
-    justify-content: flex-end;
-    padding: 10px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px;
 }
 
 .chatbot-search-input {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 20px;
-    width: 100%;
-    max-width: 400px;
-    font-size: 16px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 400px;
+  font-size: 16px;
 }
-
-/* ChatBot.css */
-
-/* Add this within your existing CSS file */
 
 /* Voice buttons container */
 .voice-buttons {
@@ -276,8 +286,7 @@
   background-color: #0056b3;
 }
 
-
-
+/* Bounce Animation */
 @keyframes bounce {
   0%, 20%, 50%, 80%, 100% {
     transform: translateY(0);
@@ -289,5 +298,3 @@
     transform: translateY(-7px);
   }
 }
-
-
