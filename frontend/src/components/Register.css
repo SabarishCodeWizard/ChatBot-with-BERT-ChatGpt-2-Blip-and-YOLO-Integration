@@ -1,11 +1,11 @@
-.login-container {
+.register-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100vh;
     background: #28283c;
-    padding: 20px;
+    padding: 20px; /* Added padding for better spacing */
     opacity: 0; /* Start hidden for animation */
     transform: translateY(20px); /* Initial position for slide-up effect */
     animation: fadeInUp 0.5s forwards; /* Animation for container */
@@ -32,64 +32,44 @@ h2 {
 }
 
 input {
-    width: 100%;
-    max-width: 400px;
-    padding: 10px;
-    margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 16px;
+    width: 100%; /* Full width input fields */
+    max-width: 400px; /* Maximum width for inputs */
+    padding: 10px; /* Padding inside the input fields */
+    margin-bottom: 15px; /* Spacing between inputs */
+    border: 1px solid #ccc; /* Border for input fields */
+    border-radius: 8px; /* Rounded corners */
+    font-size: 16px; /* Font size for input */
     transition: border-color 0.3s, box-shadow 0.3s; /* Added box-shadow transition */
 }
 
 input:focus {
-    border-color: #4285F4;
-    outline: none;
-    box-shadow: 0 0 5px rgba(66, 133, 244, 0.5); /* Focus shadow effect */
+    border-color: #34a853; /* Change border color on focus */
+    outline: none; /* Remove default outline */
+    box-shadow: 0 0 5px rgba(52, 168, 83, 0.5); /* Focus shadow effect */
 }
 
-.login-button {
+.register-button {
     padding: 12px 20px;
     border: none;
     border-radius: 8px;
-    background-color: #4285F4;
+    background-color: #34a853;
     color: white;
     font-size: 16px;
     cursor: pointer;
-    transition: background-color 0.3s, transform 0.2s;
-    margin-bottom: 10px;
+    transition: background-color 0.3s, transform 0.2s; /* Added transform transition */
+    margin-top: 10px; /* Added margin on top */
     opacity: 0; /* Start hidden for animation */
     animation: fadeIn 0.5s forwards 0.4s; /* Animation for button */
 }
 
-.login-button:hover {
-    background-color: #357ae8;
-    transform: scale(1.05);
+.register-button:hover {
+    background-color: #2c8e41;
+    transform: scale(1.05); /* Slight scaling effect on hover */
 }
 
-.logout-button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    background-color: #dc143c;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.logout-button:hover {
-    background-color: #c62828;
-}
-
-.switch-text {
-    color: white;
-    cursor: pointer;
-    margin-top: 10px;
+.error {
+    color: red;
+    margin-bottom: 10px;
     opacity: 0; /* Start hidden for animation */
-    animation: fadeIn 0.5s forwards 0.6s; /* Animation for switch text */
-}
-
-.switch-text:hover {
-    text-decoration: underline;
+    animation: fadeIn 0.5s forwards 0.3s; /* Animation for error message */
 }

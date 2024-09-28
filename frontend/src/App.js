@@ -1,12 +1,13 @@
-// src/App.js
 import React, { useState, useEffect } from 'react';
 import ChatBot from './components/ChatBot';
 import Login from './components/Login';
+import Register from './components/Register';
 import { auth } from './firebase-config';
 import './App.css';
 
 function App() {
     const [user, setUser] = useState(null);
+    const [isRegistering, setIsRegistering] = useState(false);
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged(setUser);
@@ -22,6 +23,10 @@ function App() {
         setUser(null);
     };
 
+    const handleRegisterSuccess = () => {
+        setIsRegistering(false); // After registration, show the login page
+    };
+
     return (
         <div className="App">
             <header className="App-header">
@@ -29,7 +34,13 @@ function App() {
                 {user && <button onClick={handleLogout} className="logout-button">Logout</button>}
             </header>
             <main>
-                {user ? <ChatBot /> : <Login onLogin={handleLogin} />}
+                {user ? (
+                    <ChatBot />
+                ) : isRegistering ? (
+                    <Register onRegisterSuccess={handleRegisterSuccess} />
+                ) : (
+                    <Login onLogin={handleLogin} onSwitchToRegister={() => setIsRegistering(true)} />
+                )}
             </main>
         </div>
     );
