@@ -100,6 +100,3 @@ You can customize the chatbot's behavior by modifying the following:
 
 Contributions are welcome! Please feel free to submit a pull request or open an issue if you find a bug or have a feature request.
 
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
